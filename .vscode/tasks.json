@@ -9,7 +9,7 @@
                 "-g",
                 "${file}",
                 "-o",
-                "${fileDirname}/../out/${fileBasenameNoExtension}",
+                "${fileDirname}/../bin/${fileBasenameNoExtension}",
                 "-pthread",
                 "-std=c++2a"
             ],
