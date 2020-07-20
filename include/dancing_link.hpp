@@ -44,6 +44,6 @@ class DancingLink
     DancingLink(const DancingLink &)=delete;
     DancingLink & operator = (const DancingLink &)=delete;
 
-    void push_state(){_state_stack.push(*sp_origin);}//Incorrect, need impl
-    bool pop_state(){sp_origin=_state_stack.top();_state_stack.pop();}//Incorrect, need impl
+    void push_state();//Incorrect, need impl
+    bool pop_state();
 };

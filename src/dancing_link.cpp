@@ -5,10 +5,10 @@ _LinkNode<T>::_LinkNode(const _LinkNode<T> & v) noexcept
 {
     std::cout<<" Copy constraction function called!" <<std::endl;
     val = v.val;
-    left = v.left;
-    right = v.right;
-    up = v.up;
-    down = v.down;
+    sp_left = v.sp_left;
+    sp_right = v.sp_right;
+    sp_up = v.sp_up;
+    sp_down = v.sp_down;
 }
 
 template<typename T>
@@ -16,10 +16,10 @@ _LinkNode<T> & _LinkNode<T>::operator=(const _LinkNode<T>& v) noexcept
 {
     std::cout<<"Copy operator = function called!" <<std::endl;
     val = v.val;
-    left = v.left;
-    right = v.right;
-    up = v.up;
-    down = v.down;
+    sp_left = v.sp_left;
+    sp_right = v.sp_right;
+    sp_up = v.sp_up;
+    sp_down = v.sp_down;
     return *this;
 }
 
@@ -82,12 +82,14 @@ _LinkNode<T> & _LinkNode<T>::operator=(const _LinkNode<T>& v) noexcept
 template<typename T>
 void DancingLink<T>::push_state() 
 { 
-    _state_stack.push(*p_origin); 
+    _state_stack.push(*sp_origin); 
 } //Incorrect, need impl
 
 template<typename T>
 bool DancingLink<T>::pop_state()
 {
-    p_origin = _state_stack.top();
+    if(_state_stack.emplace())return false;
+    sp_origin = _state_stack.top();
     _state_stack.pop();
+    return true;
 } //Incorrect, need impl
