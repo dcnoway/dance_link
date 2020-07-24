@@ -9,8 +9,9 @@
                 "-g",
                 "${file}",
                 "-o",
-                "${fileDirname}/../bin/${fileBasenameNoExtension}",
-                "-pthread",
+                "${workspaceFolder}/bin/${fileBasenameNoExtension}",
+                "-I",
+                "${workspaceFolder}/include",
                 "-std=c++2a"
             ],
             "options": {
