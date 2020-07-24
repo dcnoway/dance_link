@@ -16,15 +16,17 @@ namespace dlx
     class node //: public std::enable_shared_from_this<node<T>>
     {
     public:
+        size_t row,col;
         T val;
         std::shared_ptr<node<T>> sp_right;
         std::shared_ptr<node<T>> sp_down;
         std::weak_ptr<node<T>> wp_up;
         std::weak_ptr<node<T>> wp_left;
         std::weak_ptr<node<T>> wp_col;
-        size_t row,col;
 
         node() : val(){};
+        node(const T & v):val(v),row(0),col(0),
+            sp_right(nullptr),sp_down(nullptr){};
         node(const T &&v) : val(v), row(0),col(0),
             sp_right(nullptr),sp_down(nullptr){};
 
@@ -35,6 +37,14 @@ namespace dlx
             rval.wp_left.reset();
             rval.wp_up.reset();
             rval.wp_col.reset();
+        }
+        friend std::ostream & operator<<(std::ostream & os,const node<T> & val){
+            os<<"node<T>{col="<<val.col<<", row="<<val.row<<", val="<<val.val<<", sp_right="<<val.sp_right.get()<<", sp_down="<<val.sp_down.get();
+            os<<", wp_up="<<(val.wp_up.expired()?nullptr:val.wp_up.lock().get());
+            os<<", wp_left="<<(val.wp_left.expired()?nullptr:val.wp_left.lock().get());
+            os<<", wp_col="<<(val.wp_col.expired()?nullptr:val.wp_col.lock().get());
+            os<<"}"<<std::endl;
+            return os;
         }
 
         //using std::enable_shared_from_this<node<T>>::shared_from_this;
@@ -139,7 +149,7 @@ namespace dlx
     pnode_t<T> link<T>::insert(const size_t col, const size_t row,const T val)
     {
         if(empty())throw "Call insert(col,row,val) on a empty link object";
-        if(sp_head->wp_left.lock()->col<col)
+        if(sp_tail->col<col)
             throw "insert a node with a col greater than max col of link";
         
         auto pnew = std::make_shared<node<T>>(val);
@@ -280,6 +290,12 @@ namespace dlx
     template<typename T>
     pnode_t<T> link<T>::mark_restore(const pnode_t<T> p)
     {
+        if(!is_uninitialized<node<T>>(p->wp_up)&&
+            p->wp_up.expired())
+            return nullptr;
+        if(!is_uninitialized<node<T>>(p->wp_left)&&
+            p->wp_left.expired())
+            return nullptr;
         pnode_t<T> ptr;
         if(nullptr != (ptr =p->wp_up.lock())){
             ptr->sp_down = p;
@@ -293,6 +309,7 @@ namespace dlx
         if(nullptr != p->sp_down){
             p->sp_down->wp_up = p;
         }
+        return p;
     }
 
 } // namespace link
