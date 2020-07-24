@@ -1,5 +1,5 @@
-out/*
-!out/placeholder
+bin/*
+!bin/placeholder
 build/
 
 # Prerequisites

@@ -1,5 +1,0 @@
-set(src_list main.cpp dancing_link.cpp)
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
-# MESSAGE(STATUS "This is BINARY dir " ${PROJECT_BINARY_DIR})
-# MESSAGE(STATUS "This is SRC dir " ${PROJECT_SOURCE_DIR})
-add_executable(dancinglink ${src_list})
