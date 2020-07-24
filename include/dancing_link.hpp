@@ -1,6 +1,7 @@
 #include <iostream>
 #include <memory>
 #include <stack>
+#include "ptr_util.hpp"
 
 namespace dlx
 {
@@ -84,7 +85,10 @@ namespace dlx
 
         //MARK REMOVE operation
         pnode_t<T> mark_remove(const size_t col,const size_t row);
-        pnode_t<T> mark_remove(pnode_t<T>);
+        pnode_t<T> mark_remove(const pnode_t<T>);
+
+        //MARK RESTORE operation
+        pnode_t<T> mark_restore(const pnode_t<T>);
     };
 
 
@@ -142,21 +146,153 @@ namespace dlx
         pnew->col = col;
         pnew->row = row;
 
-        if(auto p = sp_head;p->sp_right!=sp_head){
+        //find the col header node
+        auto p = sp_head;
+        while(p!=nullptr){
+            if(p->col == col){
+                pnew->wp_col = p;
+                break;
+            }
+            p=p->sp_right;
+        }
 
+        //find the last row node that has a row is the greatest of the all the node in the col nodes link which row is less than p
+        //in the 1st iter, p must be the col header that has a ZERO row variant
+        while (p->sp_down != nullptr)
+        {
+            if(row < p->sp_down->row)break;
+            else if(row == p->sp_down->row){
+                std::cerr<<"link<T>::insert(col,row) insert a node in a exists node with same col and row!"<<std::endl;
+                break;
+            }
+            p = p->sp_down;
+        }
+
+        //the p var MUST NOT nullptr
+        if(p == nullptr)return nullptr;
+
+        pnew->wp_up = p;
+        pnew->sp_down = p->sp_down;
+
+        p->sp_down = pnew;
+        if(pnew->sp_down!=nullptr)pnew->sp_down->wp_up = pnew;
+
+        //find the left and right node in the same row
+        //find left node in the same row
+        pnode_t<T> pleft = nullptr;
+        p = pnew->wp_col.lock();
+        while(nullptr != (p = p->wp_left.lock())){
+            if(pleft!=nullptr)break;
+            while(p->sp_down!=nullptr){
+                p = p->sp_down;
+                if(p->row == row){
+                    pleft = p;
+                    break;
+                }
+                else if(p->row >row)break;
+            }
+        }
+        if(pleft!=nullptr){
+            pnew->wp_left = pleft;
+            pleft->sp_right = pnew;
+        }
+        //find right node in the same row
+        pnode_t<T> pright  = nullptr;
+        p = pnew->wp_col.lock();
+        while(nullptr != p->sp_right){
+            if(pright!=nullptr)break;
+            p = p->sp_right;
+            while(p->sp_down!=nullptr){
+                p = p->sp_down;
+                if(p->row == row){
+                    pright = p;
+                    break;
+                }
+                else if(p->row > row) break;
+            }
+        }
+        if(pright!=nullptr)
+        {
+            pnew->sp_right = pright;
+            pright->wp_left = pnew;
+        }
+
+        return pnew;
+    }
+
+    //TODO: reine the remove of col header node
+    template<typename T>
+    pnode_t<T> link<T>::mark_remove(const size_t col, const size_t row)
+    {
+        auto p = sp_head;
+        while(p!=nullptr){
+            if(p->col == col){
+                while(p!=nullptr){
+                    if(p->row == row)
+                        return mark_remove(p);
+                    p = p->sp_down;
+                }
+            }
+            p = p->sp_right;
         }
         return nullptr;
     }
 
+    //TODO: reine the remove of col header node
     template<typename T>
-    pnode_t<T> link<T>::mark_remove(const size_t col, const size_t row)
+    pnode_t<T> link<T>::mark_remove(const pnode_t<T> p)
     {
-        return nullptr;
-    }
-    template<typename T>
-    pnode_t<T> link<T>::mark_remove(pnode_t<T> p)
-    {
+        //Check p validation
+        if(!is_uninitialized<node<T>>(p->wp_up)
+            && p->wp_up.expired()){
+            std::cerr<< "link<T>::mark_remove() on a node that has a expired weak_ptr to up node"<<std::endl;
+            return nullptr;
+        }
+        if(!is_uninitialized<node<T>>(p->wp_left) //
+            && p->wp_left.expired()){
+            std::cerr <<"link<T>::mark_remove() on a node that has a expired weak_ptr to left"<<std::endl;
+            return nullptr;
+        }
+
+        //col header node
+        if(is_uninitialized<node<T>>(p->wp_up)){
+            if(p->row != 0)std::cerr << "link<T>::mark_remove(), remove a node without wp_up and col is NOT ZERO"<<std::endl;
+            return nullptr;
+        }
+        else {
+            p -> wp_up.lock()->sp_down = p->sp_down;
+        }
+
+        if(!is_uninitialized<node<T>>(p->wp_left)){
+            p -> wp_left.lock() -> sp_right = p->sp_right;
+        }
+        
+        //p is NOT the last node in the col
+        if(p->sp_down != nullptr)
+            p->sp_down->wp_up = p->wp_up.lock();
+
+        if(p->sp_right != nullptr)
+            p->sp_right->wp_left = p->wp_left.lock();
+
         return p;
+    }
+
+    template<typename T>
+    pnode_t<T> link<T>::mark_restore(const pnode_t<T> p)
+    {
+        pnode_t<T> ptr;
+        if(nullptr != (ptr =p->wp_up.lock())){
+            ptr->sp_down = p;
+        }
+        if(nullptr != (ptr = p->wp_left.lock())){
+            ptr ->sp_right = p;
+        }
+        if(nullptr != p->sp_right){
+            p->sp_right->wp_left = p;
+        }
+        if(nullptr != p->sp_down){
+            p->sp_down->wp_up = p;
+        }
     }
 
 } // namespace link
