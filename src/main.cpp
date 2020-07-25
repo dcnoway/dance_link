@@ -31,5 +31,10 @@ int main(int argc, char const *argv[])
         std::cout <<"Right of col is " <<*(p1->wp_col.lock()->sp_right)<<std::endl;
         std::cout <<"Left of col is " <<*(p1->wp_col.lock()->wp_left.lock())<<std::endl;
     }
+    auto solution = link.solve();
+    if(solution.has_value()){
+        std::cout<<"done!"<<std::endl;
+    }
+    else std::cout<<"Can not solve the problem!"<<std::endl;
     return 0;
 }

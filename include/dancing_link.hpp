@@ -1,6 +1,8 @@
 #include <iostream>
 #include <memory>
 #include <stack>
+#include <optional>
+#include <vector>
 #include "ptr_util.hpp"
 
 namespace dlx
@@ -73,11 +75,12 @@ namespace dlx
     {
     private:
         pnode_t<T> sp_head, sp_tail;
-        std::stack<pnode_t<T>> _state_stack;
+        std::stack<pnode_t<T>> _answers;
 
 
     protected:
         const pnode_t<T> clone_all()  noexcept;
+        bool _solve();
 
     public:
         //Disable copy
@@ -85,13 +88,13 @@ namespace dlx
         link &operator=(const link &) = delete;
 
         //Constractors
-        link() : _state_stack() 
+        link() : _answers() 
         {
             std::cout << "link constractor link()" << std::endl;
             sp_tail = sp_head = std::make_shared<node<T>>(0);
         }
 
-        link(const size_t num_of_cols): _state_stack()
+        link(const size_t num_of_cols): _answers()
         {
             std::cout << "link constractor link()" << std::endl;
             sp_tail = sp_head = std::make_shared<node<T>>(0);
@@ -119,6 +122,9 @@ namespace dlx
         pnode_t<T> remove_col(const pnode_t<T>);
         //restore col
         pnode_t<T> restore_col(const pnode_t<T>);
+
+        //solve problem function
+        std::optional<std::vector<pnode_t<T>>> solve();
     };
 
 
@@ -414,5 +420,28 @@ namespace dlx
             ptr->sp_right  = col;
 
         return col;
+    }
+
+    template<typename T>
+    bool link<T>::_solve()
+    {
+        return false;
+    }
+    template<typename T>
+    std::optional<std::vector<pnode_t<T>>> link<T>::solve()
+    {
+        //clear answer stack
+        while(!_answers.empty())_answers.pop();
+
+        if(_solve()){
+            std::vector<pnode_t<T>> result;
+            while(!_answers.empty()){
+                auto ele = _answers.top();
+                _answers.pop();
+                result.push_back(ele);
+            }
+            return result;
+        }
+        else return std::nullopt;
     }
 } // namespace link
