@@ -72,7 +72,7 @@ namespace dlx
     class link
     {
     private:
-        std::shared_ptr<node<T>> sp_head, sp_tail;
+        pnode_t<T> sp_head, sp_tail;
         std::stack<pnode_t<T>> _state_stack;
 
 
@@ -306,11 +306,11 @@ namespace dlx
             return nullptr;
         }
         else {
-            p -> wp_up.lock()->sp_down = p->sp_down;
+            if(auto ptr = p->wp_up.lock()) ptr->sp_down = p->sp_down;
         }
 
         if(!is_uninitialized<node<T>>(p->wp_left)){
-            p -> wp_left.lock() -> sp_right = p->sp_right;
+            if(auto ptr = p->wp_left.lock()) ptr->sp_right = p->sp_right;
         }
         
         //p is NOT the last node in the col
@@ -355,7 +355,8 @@ namespace dlx
         if(col->row !=0)return nullptr;
 
         //remove the col header col
-        col->wp_left.lock()->sp_right = col->sp_right;
+        if(auto ptr = col->wp_left.lock())
+            ptr->sp_right = col->sp_right;
         col->sp_right->wp_left = col->wp_left.lock();
 
         //iter all row nodes under col
@@ -364,12 +365,12 @@ namespace dlx
             //remove all node on the left side
             for(pnode_t<T> p = row->wp_left.lock();p!=nullptr;p = p->wp_left.lock()){
                 if(nullptr != p->sp_down)p->sp_down->wp_up = p->wp_up.lock();
-                p->wp_up.lock()->sp_down = p->sp_down;
+                if(auto ptr = p->wp_up.lock()) ptr->sp_down = p->sp_down;
             }
             //remove all node on the right side
             for(pnode_t<T> p = row->sp_right;p!=nullptr;p = p->sp_right){
                 if(nullptr != p->sp_down)p->sp_down->wp_up = p->wp_up.lock();
-                p->wp_up.lock()->sp_down = p->sp_down;
+                if(auto ptr = p->wp_up.lock()) ptr->sp_down = p->sp_down;
             }
         }
 
@@ -384,30 +385,33 @@ namespace dlx
 
         pnode_t<T> row;
         //iter to the last row node
-        for(row = col->sp_down;row->sp_down!=nullptr;row = row->sp_down);
+        for(row = col;row->sp_down!=nullptr;row = row->sp_down);
 
-        for(; (row != col) && !is_uninitialized(row->wp_up) ;row = row->wp_up.lock()){
+        for(; (nullptr != row) && (row != col) && !is_uninitialized(row->wp_up) ;row = row->wp_up.lock()){
             pnode_t<T> p;
             //find the last node on the right side
             for(p = row;p->sp_right != nullptr;p = p->sp_right);
             //reverse restore the nodes
-            for(; p!=row ;p=p->wp_left.lock()){
+            for(; (p!=row) && (! p->wp_left.expired()) ;p=p->wp_left.lock()){
                 if(nullptr != p->sp_down)p->sp_down->wp_up = p;
-                p->wp_up.lock()->sp_down = p;
+                if(auto ptr = p->wp_up.lock())
+                    ptr->sp_down = p;
             }
 
             //find the last node on the left side
-            for(p = row;!is_uninitialized(p->wp_left);p = p->wp_left.lock());
+            for(p = row;!is_uninitialized(p->wp_left) && !(p->wp_left.expired());p = p->wp_left.lock());
             //reverse restore the nodes
-            for(; p!=row ;p = p->sp_right){
+            for(; (p!=row) && (p->sp_right != nullptr) ;p = p->sp_right){
                 if(nullptr != p->sp_down)p->sp_down->wp_up = p;
-                p->wp_up.lock()->sp_down = p;
+                if(auto ptr = p->wp_up.lock())
+                    ptr->sp_down = p;
             }
 
         }
         //restore the col header
         col->sp_right->wp_left = col;
-        col->wp_left.lock()->sp_right  = col;
+        if(auto ptr = col->wp_left.lock())
+            ptr->sp_right  = col;
 
         return col;
     }
