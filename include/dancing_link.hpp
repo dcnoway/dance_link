@@ -16,8 +16,8 @@ namespace dlx
     class node //: public std::enable_shared_from_this<node<T>>
     {
     public:
-        size_t row,col;
         T val;
+        size_t row,col;
         std::shared_ptr<node<T>> sp_right;
         std::shared_ptr<node<T>> sp_down;
         std::weak_ptr<node<T>> wp_up;

@@ -1,4 +1,5 @@
 #include<iostream>
+#include<string>
 #include "dancing_link.hpp"
 
 int main(int argc, char const *argv[])
