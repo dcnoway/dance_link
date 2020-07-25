@@ -35,3 +35,7 @@ Using classic algorithm as a discriminator to train a SUDUKO generator, just lik
 - Catch2    new open source unit test framework for C++
 - microsoft/vcpkg   C++ lib/source/header dependency package manager just like npm for js or maven for java
 
+## Stupid trys, lessen learned
+- clang 11, cmake, VS Build Tools and VSCode on Win10     build successful, but IntelliSense NOT working! Search web and try every solution, finally the official site said that this is a knowed issue since 2019 May and it's still open
+
+
