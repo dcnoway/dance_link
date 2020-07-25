@@ -50,6 +50,21 @@ namespace dlx
         //using std::enable_shared_from_this<node<T>>::shared_from_this;
     };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     template<typename T>
     using pnode_t = typename std::shared_ptr<node<T>>;
 
@@ -93,13 +108,34 @@ namespace dlx
         //insert operation
         pnode_t<T> insert(const size_t col,const size_t row, const T val);
 
-        //MARK REMOVE operation
-        pnode_t<T> mark_remove(const size_t col,const size_t row);
-        pnode_t<T> mark_remove(const pnode_t<T>);
+        //remove operation
+        pnode_t<T> remove(const size_t col,const size_t row);
+        pnode_t<T> remove(const pnode_t<T>);
 
-        //MARK RESTORE operation
-        pnode_t<T> mark_restore(const pnode_t<T>);
+        //restore operation
+        pnode_t<T> restore(const pnode_t<T>);
+
+        //remove col
+        pnode_t<T> remove_col(const pnode_t<T>);
+        //restore col
+        pnode_t<T> restore_col(const pnode_t<T>);
     };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     template <typename T>
@@ -232,14 +268,14 @@ namespace dlx
 
     //TODO: reine the remove of col header node
     template<typename T>
-    pnode_t<T> link<T>::mark_remove(const size_t col, const size_t row)
+    pnode_t<T> link<T>::remove(const size_t col, const size_t row)
     {
         auto p = sp_head;
         while(p!=nullptr){
             if(p->col == col){
                 while(p!=nullptr){
                     if(p->row == row)
-                        return mark_remove(p);
+                        return remove(p);
                     p = p->sp_down;
                 }
             }
@@ -250,7 +286,7 @@ namespace dlx
 
     //TODO: reine the remove of col header node
     template<typename T>
-    pnode_t<T> link<T>::mark_remove(const pnode_t<T> p)
+    pnode_t<T> link<T>::remove(const pnode_t<T> p)
     {
         //Check p validation
         if(!is_uninitialized<node<T>>(p->wp_up)
@@ -288,7 +324,7 @@ namespace dlx
     }
 
     template<typename T>
-    pnode_t<T> link<T>::mark_restore(const pnode_t<T> p)
+    pnode_t<T> link<T>::restore(const pnode_t<T> p)
     {
         if(!is_uninitialized<node<T>>(p->wp_up)&&
             p->wp_up.expired())
@@ -312,4 +348,67 @@ namespace dlx
         return p;
     }
 
+    //remove all node under col header p, and all node that have the same row with these
+    template<typename T>
+    pnode_t<T> link<T>::remove_col(const pnode_t<T> col)
+    {
+        if(col->row !=0)return nullptr;
+
+        //remove the col header col
+        col->wp_left.lock()->sp_right = col->sp_right;
+        col->sp_right->wp_left = col->wp_left.lock();
+
+        //iter all row nodes under col
+        for(pnode_t<T> row = col->sp_down;row!=nullptr;row = row->sp_down){
+            //For a given row node
+            //remove all node on the left side
+            for(pnode_t<T> p = row->wp_left.lock();p!=nullptr;p = p->wp_left.lock()){
+                if(nullptr != p->sp_down)p->sp_down->wp_up = p->wp_up.lock();
+                p->wp_up.lock()->sp_down = p->sp_down;
+            }
+            //remove all node on the right side
+            for(pnode_t<T> p = row->sp_right;p!=nullptr;p = p->sp_right){
+                if(nullptr != p->sp_down)p->sp_down->wp_up = p->wp_up.lock();
+                p->wp_up.lock()->sp_down = p->sp_down;
+            }
+        }
+
+        return col;
+    }
+
+    //restore a given col header and all attached nodes
+    template<typename T>
+    pnode_t<T> link<T>::restore_col(const pnode_t<T> col)
+    {
+        if(col->row !=0)return nullptr;
+
+        pnode_t<T> row;
+        //iter to the last row node
+        for(row = col->sp_down;row->sp_down!=nullptr;row = row->sp_down);
+
+        for(; (row != col) && !is_uninitialized(row->wp_up) ;row = row->wp_up.lock()){
+            pnode_t<T> p;
+            //find the last node on the right side
+            for(p = row;p->sp_right != nullptr;p = p->sp_right);
+            //reverse restore the nodes
+            for(; p!=row ;p=p->wp_left.lock()){
+                if(nullptr != p->sp_down)p->sp_down->wp_up = p;
+                p->wp_up.lock()->sp_down = p;
+            }
+
+            //find the last node on the left side
+            for(p = row;!is_uninitialized(p->wp_left);p = p->wp_left.lock());
+            //reverse restore the nodes
+            for(; p!=row ;p = p->sp_right){
+                if(nullptr != p->sp_down)p->sp_down->wp_up = p;
+                p->wp_up.lock()->sp_down = p;
+            }
+
+        }
+        //restore the col header
+        col->sp_right->wp_left = col;
+        col->wp_left.lock()->sp_right  = col;
+
+        return col;
+    }
 } // namespace link
