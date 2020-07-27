@@ -2,7 +2,7 @@ bin/*
 !bin/placeholder
 build/
 
-settings.json
+# settings.json
 
 # Prerequisites
 *.d
