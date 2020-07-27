@@ -161,6 +161,8 @@ target_link_libraries(xxx ${NAME_LIBRARIES})
 - Add test sub dir after INCLUDE(CTest) and ENABLE_TESTING()
 - Not all of the PackageName.cmake or PackageNameConfig.cmake will provide ${PackageName_INCLUDE_DIRS} and ${PackageName_LIBRARIES}
 - Some header-only libs like Catch2, cmake can find it by find_package, but it' NOT nessasrily to include_directory(${}), just use #include <packageName/xxxx.h>
+- If find_package not working try to set CMAKE_MODULE_PATH env var
+- If it still not working try to set VCPKG_ROOT env var, and run vcpkg integrate install
 
 # Google Test CMake usage
 
