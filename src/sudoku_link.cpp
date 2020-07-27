@@ -6,7 +6,7 @@ using namespace dlx;
 
 unsigned sudoku_link::rule_cell_not_empty(const cell_t & cell)
 {
-    return cell.y * 9 + cell.x;
+    return cell.y * 9 + cell.x +1;
 }
 
 unsigned sudoku_link::rule_row_has_num(const cell_t & cell)
@@ -61,8 +61,8 @@ sudoku_link::cell_t sudoku_link::parse_solution_row(const pnode_t<unsigned> & ro
         switch (s)
         {
         case 0: //rule 1 cell not empty
-            result.y = p->col / 9;
-            result.x = p->col % 9;
+            result.y = (p->col-1) / 9;
+            result.x = (p->col-1) % 9;
             result.num = p->val;
             break;
         case 1: //rule 2 row has num
@@ -97,6 +97,7 @@ sudoku_link::board99_t sudoku_link::parse_solution(const vector<pnode_t<unsigned
 
 optional<sudoku_link::board99_t> sudoku_link::solve_sudoku(const board99_t &sudoku)
 {
+    build_link(sudoku);
     auto solution = solve();
     if (solution.has_value())
     {

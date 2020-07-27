@@ -1,6 +1,8 @@
 #ifndef __DANCING_LINK
 #define __DANCING_LINK
 
+#define __MY_DEBUG
+
 #include <iostream>
 #include <memory>
 #include <stack>
@@ -70,8 +72,11 @@ namespace dlx
     {
     private:
         pnode_t<T> sp_head, sp_tail;
+        std::vector<pnode_t<T>> headers;
         std::stack<pnode_t<T>> _answers;
-
+#ifdef __MY_DEBUG
+        unsigned _max_row=0;
+#endif
         // return tuple is <up,down,left,right>
         // nullptr means that the node with given coordinate is the edge node on that direction
         std::tuple<pnode_t<T>, pnode_t<T>, pnode_t<T>, pnode_t<T>> find_neighbour(const unsigned col, const unsigned row);
@@ -141,6 +146,7 @@ namespace dlx
     {
         if (empty())
         {
+            headers.clear();
             //auto sp_curr = sp_head;
             for (unsigned i = 1; i <= num_of_cols; ++i)
             {
@@ -151,12 +157,13 @@ namespace dlx
                 pnew->wp_left = sp_tail;
 
                 pnew->wp_up = pnew;
-
+                pnew->wp_col = pnew;
                 //init row and col variants
                 pnew->row = 0;
                 pnew->col = i;
                 //move cursor to the new created node
                 sp_head->wp_left = sp_tail = pnew;
+                headers.push_back(pnew);
             }
         }
         else
@@ -173,6 +180,10 @@ namespace dlx
             sp_head->wp_left.reset();
             sp_tail = sp_head;
             sp_head->sp_right = nullptr;
+            headers.clear();
+#ifdef __MY_DEBUG
+            _max_row  = 0;
+#endif
         }
     }
 
@@ -211,6 +222,7 @@ namespace dlx
                 ;
             pl->wp_left = pnew;
         }
+
         return pnew;
 
         // //find the col header node
@@ -428,6 +440,11 @@ namespace dlx
     template <typename T>
     pnode_t<T> link<T>::remove_col(const pnode_t<T> col)
     {
+        if(!col){
+            std::cerr << "Call restore_col with a nullptr." << std::endl;
+            return nullptr;
+        }
+
         if (col->row != 0)
             return nullptr;
 
@@ -447,7 +464,7 @@ namespace dlx
         {
             //For a given row node
             //remove all node on the left side
-            for (pnode_t<T> p = row->wp_left.lock(); p != nullptr; p = p->wp_left.lock())
+            for (pnode_t<T> p = row->wp_left.lock(); p != row; p = p->wp_left.lock())
             {
                 if (nullptr != p->sp_down)
                     p->sp_down->wp_up = p->wp_up.lock();
@@ -481,6 +498,16 @@ namespace dlx
     template <typename T>
     pnode_t<T> link<T>::restore_col(const pnode_t<T> col)
     {
+        /*
+        Hit a segment fault
+        Cause: 
+        1, col header node was hold by only one shared_ptr which was stored in left col header.
+        2, after remove_col on a col header node, there is no shared_ptr holds this col header node, node was deleted automaticly
+        */
+        if(!col){
+            std::cerr << "Call restore_col with a nullptr." << std::endl;
+            return nullptr;
+        }
         if (col->row != 0)
             return nullptr;
 
@@ -542,7 +569,26 @@ namespace dlx
     bool link<T>::_solve()
     {
         //TODO:
-        return false;
+        if(sp_head->sp_right == nullptr){
+            return true;
+        }
+        else {
+            pnode_t<T> pcol = sp_head->sp_right;
+            remove_col(pcol);
+            for(pnode_t<T> prow = pcol->sp_down;prow!=nullptr;prow=prow->sp_down){
+                _answers.push(prow);
+                for(pnode_t<T> pnode = prow->sp_right; pnode!=nullptr;pnode=pnode->sp_right){
+                    remove_col(pnode->wp_col.lock());
+                }
+                if(_solve())return true;
+                for(pnode_t<T> pnode = prow->wp_left.lock(); pnode!=prow; pnode = pnode->wp_left.lock()){
+                    restore_col(pnode->wp_col.lock());
+                }
+                _answers.pop();
+            }
+            restore_col(pcol);
+            return false;
+        }
     }
     template <typename T>
     std::optional<std::vector<pnode_t<T>>> link<T>::solve()
@@ -648,34 +694,51 @@ namespace dlx
             return;
         }
 
-        pnode_t<T> pfirst, pprior;
+        pnode_t<T> pfirst=nullptr, pprior=nullptr;
         for (int i = 0; i < cols.size(); ++i)
         {
             unsigned col = cols[i];
+            if(col==0){
+                std::cerr << "Dancing Link column index start with 1!" <<std::endl;
+                return;
+            }
             pnode_t<T> pcol = find_col_head(col);
-            pnode_t<T> plast = pcol->wp_up.lock();
+            pnode_t<T> pup = pcol->wp_up.lock();
 
             pnode_t<T> pnode;
             if (vals.size() > i)
                 pnode = std::make_shared<node<T>>(vals[i]);
             else
                 pnode = std::make_shared<node<T>>(0);
-            if (i == 0)
-                pfirst = pnode;
-            pprior = pnode;
-            pnode->wp_up = plast;
+            pnode->col = col;
+            pnode->wp_col = pcol;
+#ifdef __MY_DEBUG
+            pnode->row = _max_row +1;
+#endif            
+            pnode->wp_up = pup;
             pnode->sp_down = nullptr;
-            pnode->wp_left = pprior;
             pnode->sp_right = nullptr;
-
-            plast->sp_down = pnode;
-            pcol->wp_up = pnode;
-            if (pprior != pnode)
+            if (i == 0){//this node is the first node in the row
+                pfirst = pnode;
+                pnode->wp_left = pnode;
+            }
+            else {
                 pprior->sp_right = pnode;
+                pnode->wp_left = pprior;
+            }
+
+            pup->sp_down = pnode;
+            pcol->wp_up = pnode;
             if (pfirst != pnode)
                 pfirst->wp_left = pnode;
+
+            pprior = pnode;
         }
+#ifdef __MY_DEBUG
+        ++_max_row;
+#endif            
     }
 } // namespace dlx
+#undef __MY_DEBUG
 
 #endif
