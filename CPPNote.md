@@ -175,3 +175,69 @@ target_link_libraries(main PRIVATE GTest::gtest GTest::gtest_main GTest::gmock G
 
 add_test(AllTestsInMain main)
 ```
+
+# C++ rumtime dynamic mechnism
+## dynamic_cast and dynamic_pointer_cast
+To cast a smart pointer of dynamic type objects, use dynamic_pointer_cast.
+dynamic_pointer_cast do NOT break smart pointer's use_count.
+Do NOT get raw pointer from a smart pointer and cast the raw pointer!!!
+```C++
+        virtual const cell_ptr get_cell(const coords_type& cds)const noexcept{
+            auto itr = _elements.find(cds);
+            if(itr != _elements.end()){
+                if(itr->second->_type == ELEMENT_TYPE::CELL)
+                    return std::dynamic_pointer_cast<cell_t<CELL_VALUE_TYPE,AXIS_TYPE,DIMENSION_NUM>>(itr->second);
+                else return nullptr;
+            }
+            else return nullptr;
+        }
+
+```
+## typeid
+typeid operator returns the runtime type_info of a object
+
+https://en.cppreference.com/w/cpp/language/typeid
+```C++
+const std::type_info& ti1 = typeid(A);
+const std::type_info& ti2 = typeid(A);
+ 
+assert(&ti1 == &ti2); // not guaranteed
+assert(ti1.hash_code() == ti2.hash_code()); // guaranteed
+assert(std::type_index(ti1) == std::type_index(ti2)); // guaranteed
+```
+https://docs.microsoft.com/en-us/cpp/cpp/type-info-class?view=vs-2019
+```C++
+class type_info {
+public:
+    type_info(const type_info& rhs) = delete; // cannot be copied
+    virtual ~type_info();
+    size_t hash_code() const;
+    _CRTIMP_PURE bool operator==(const type_info& rhs) const;
+    type_info& operator=(const type_info& rhs) = delete; // cannot be copied
+    _CRTIMP_PURE bool operator!=(const type_info& rhs) const;
+    _CRTIMP_PURE int before(const type_info& rhs) const;
+    size_t hash_code() const noexcept;
+    _CRTIMP_PURE const char* name() const;
+    _CRTIMP_PURE const char* raw_name() const;
+};
+```
+example for typeid usage on dynamic types
+```C++
+animal* a = new cat; // animal has to have at least one virtual function
+animal * b;
+if( typeid(*a) == typeid(cat) )
+{
+    // the object is of type cat! but the pointer is base pointer.
+}
+if(typeid(a) == typeid(b))
+{
+    // the pointer is of type animal
+}
+```
+
+## decltype
+decltype is a compile-time operator returns the type of a expression
+```C++
+decltype(0xdeedbeef) number = 0; // number is of type int!
+decltype(someArray[0]) element = someArray[0];
+```
