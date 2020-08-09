@@ -1,11 +1,27 @@
-# template seperate file does NOT compile!!!
-Pls do not seperate code with template into header file and impl file!!!
+# The self-redemption notes of a out-man coder who barely coding for Twenty years 
+
+## Language choose
+
+C++: as my prefer language, which have a very clear memory structures and control abilities helps to get a solid understand for the modern language features.
+
+Python: for scripting language and kids educations
+
+Java: too many java programmers, forget it. Just get knowing about popular Java framework and Java platforms at a architect  level.
+
+TypeScript: strong-type JavaScript with basic OO support, front-end practice language with node.js and electron lib.
+
+# template separate file does NOT compile!!!
+
+My first day recall c++ skills like a idiot, acting like a rookie...
+
+Pls do not separate code with template into header file and implement file!!!
 Ridiculous error hint: 
+
 ```
 xxx::xxx() reference not find
 ```
 # smart_pointer
-1. Do NOT constract more than one smart_pointer on one obj
+1. Do NOT construct more than one smart_pointer on one obj
 
 2. std::enable_shared_from_this is a utility class helper to safely get a smart pointer like make_shared(this)
     2.1 
@@ -27,22 +43,26 @@ class foo : public std::enable_shared_from_this<foo>
 # Someting about CMake with C++
 1. Turn C++ 11,C++ 14,C++17,C++20 on in the CMakeLists.txt
 ```cmake
+# old-fashion usage
 SET(CMAKE_CXX_EXTENSIONS OFF)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(CMAKE_CXX_STANDARD 20)
+
+# modern usage
+SET_TARGET_PROPERTIES(<YOUR TARGET> PROPERTIES        CXX_STANDARD 20        CXX_STANDARD_REQUIRED YES        CXX_EXTENSIONS NO)
 ```
 2. Set the C/C++ include directory in the CMakeLists.txt
 ```cmake
 INCLUDE_DIRECTORIES(include)
 ```
-3. Set the output binary file directory from build/bin to bin
+3. Set the output binary file directory from build/bin to out
 ```cmake
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/out)
 ```
-# The first try C++ enviroment constract on Linux
-## Enviroment describ
+# The first try C++ environment construct on Linux
+## Environment describe
 - Windows 10 insider build 20175
-- WSL2 kernal 4.19.121.1
+- WSL2 kernel 4.19.121.1
 - Ubuntu 20.04
 - VSCode v1.47.2
 - CMake v3.16.3
@@ -160,7 +180,7 @@ target_link_libraries(xxx ${NAME_LIBRARIES})
 # Lesson learned
 - Add test sub dir after INCLUDE(CTest) and ENABLE_TESTING()
 - Not all of the PackageName.cmake or PackageNameConfig.cmake will provide ${PackageName_INCLUDE_DIRS} and ${PackageName_LIBRARIES}
-- Some header-only libs like Catch2, cmake can find it by find_package, but it' NOT nessasrily to include_directory(${}), just use #include <packageName/xxxx.h>
+- Some header-only libs like Catch2, cmake can find it by find_package, but it' NOT necessarily to include_directory(${}), just use #include <packageName/xxxx.h>
 - If find_package not working try to set CMAKE_MODULE_PATH env var
 - If it still not working try to set VCPKG_ROOT env var, and run vcpkg integrate install
 
@@ -176,7 +196,7 @@ target_link_libraries(main PRIVATE GTest::gtest GTest::gtest_main GTest::gmock G
 add_test(AllTestsInMain main)
 ```
 
-# C++ rumtime dynamic mechnism
+# C++ runtime dynamic mechanism
 ## dynamic_cast and dynamic_pointer_cast
 To cast a smart pointer of dynamic type objects, use dynamic_pointer_cast.
 dynamic_pointer_cast do NOT break smart pointer's use_count.
@@ -241,3 +261,116 @@ decltype is a compile-time operator returns the type of a expression
 decltype(0xdeedbeef) number = 0; // number is of type int!
 decltype(someArray[0]) element = someArray[0];
 ```
+
+##  Compiler template errors
+
+Some STL template function and class do not act as your think, one tiny mistakes will raise lots of complicated errors, i.e. 
+
+```C++
+auto ptr = std::make_shared<OneTemplatedType<TemplateParam>>({init_val1,init_val2},init_val);
+```
+
+This line may cause lots of errors, actually, just add one type hint to the params is all done.
+
+```C++
+auto ptr = std::make_shared<OneTemplatedType<TemplateParam>>(SomeType{init_val1,init_val2},init_val);
+```
+
+## Using clang on windows
+
+Although you may use clang on windows command line very well, vscode loos like did not work well on IntelliSense. Do NOT search baidu.com or bing.com or stackoverflow.com. Install the official clangd extension for vscode
+
+```
+llvm-vs-code-extensions.vscode-clangd
+```
+
+## template parameters not only as typename, but also be able to play as a expressions
+
+```c++
+template<typename T, int buf_size>
+class xxxxxx
+{
+	std::array<T,buf_size> buf;
+    int len = buf_size;
+}
+```
+
+## templated class relationships
+
+see comments in the code blocks below.
+
+```c++
+template <typename T>
+class Base
+{
+    T m_val;
+    public:
+    ~Base()=default;
+}
+template <typename T>
+class Derive: public Base<T>
+{
+    ...
+}
+
+int main()
+{
+    Base<int> * pbase = nullptr;
+    Derive<int> * pint = new Derive<int>;
+    Derive<long> * plong = new Derive<long>;
+    pbase = pint;	//Ok
+    pbase = plong;	//Chould not compile
+    /****
+    Look at the ASM code address labels
+    The label of Base<int> is something like _Base_template_int
+    The label of Base<long> is something like _Base_template_long
+    Same template but different classes
+    You may think template is something like a preprocessor. i.e. ANSI C MACRO  ASSERT()
+    ****/
+    
+}
+
+```
+
+## code comments as documents
+
+See https://www.doxygen.nl  for details, 
+
+## VSCode configuration
+
+.vscode/extensions.json
+
+```json
+{
+	// See https://go.microsoft.com/fwlink/?LinkId=827846 to learn about workspace recommendations.
+	// Extension identifier format: ${publisher}.${name}. Example: vscode.csharp
+
+	// List of extensions which should be recommended for users of this workspace.
+	"recommendations": [
+		//C++ language support
+		"ms-vscode.cpptools",
+		//CMake build system support
+		"ms-vscode.cmake-tools",
+		//Unit tests support
+		"hbenl.vscode-test-explorer",
+		"matepek.vscode-catch2-test-adapter",
+		//Comment documentation support for Doxygen
+		"cschlosser.doxdocgen",
+		//todos lists support
+		"gruntfuggly.todo-tree",
+		//Git lens
+		"eamodio.gitlens",
+        //clangd
+        "llvm-vs-code-extensions.vscode-clangd"
+	],
+	// List of extensions recommended by VS Code that should not be recommended for users of this workspace.
+	"unwantedRecommendations": [
+		
+	]
+}
+```
+
+
+
+
+
